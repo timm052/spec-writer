@@ -1,0 +1,27 @@
+{
+  "name": "spec-writer",
+  "version": "1.0.0",
+  "description": "Specification authoring tool for architectural practice",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "db:migrate": "turbo run db:migrate --filter=@spec-writer/db",
+    "db:seed": "turbo run db:seed --filter=@spec-writer/db",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "prettier-plugin-tailwindcss": "^0.7.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

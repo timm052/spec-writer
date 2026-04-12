@@ -1,0 +1,167 @@
+import type { ExportProject, ExportSection } from '../index.js';
+
+export function buildSpecHtml(project: ExportProject, sections: ExportSection[]): string {
+  const meta = [project.number, project.client, project.address].filter(Boolean).join(' · ');
+  const date = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const sectionsHtml = sections
+    .map((section) => {
+      const clausesHtml = section.clauses
+        .map((clause) => {
+          const isHtml = /<[a-z][\s\S]*>/i.test(clause.resolvedBody);
+          const body = isHtml ? clause.resolvedBody : `<p>${clause.resolvedBody.replace(/\n/g, '<br>')}</p>`;
+          return `
+          <div class="clause">
+            <div class="clause-header">
+              <span class="clause-code">${esc(clause.code)}</span>
+              <span class="clause-title">${esc(clause.title)}</span>
+            </div>
+            <div class="clause-body">${body}</div>
+          </div>`;
+        })
+        .join('\n');
+
+      return `
+      <section class="spec-section">
+        <h2 class="section-heading">${esc(section.code)} — ${esc(section.title)}</h2>
+        ${clausesHtml}
+      </section>`;
+    })
+    .join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${esc(project.name)} — Specification</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+
+    .page {
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20mm 20mm 25mm;
+    }
+
+    .doc-header {
+      border-bottom: 2px solid #1a1a1a;
+      padding-bottom: 12pt;
+      margin-bottom: 24pt;
+    }
+    .doc-title { font-size: 20pt; font-weight: bold; margin: 0 0 4pt; }
+    .doc-meta { font-size: 9pt; color: #555; margin: 0; }
+    .doc-date { font-size: 9pt; color: #777; margin-top: 4pt; }
+
+    .spec-section { margin-bottom: 28pt; page-break-inside: avoid; }
+    .section-heading {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4pt;
+      margin: 0 0 12pt;
+      page-break-after: avoid;
+    }
+
+    .clause { margin-bottom: 14pt; page-break-inside: avoid; }
+    .clause-header { display: flex; gap: 8pt; margin-bottom: 3pt; }
+    .clause-code { font-family: 'Courier New', monospace; font-size: 9pt; color: #555; min-width: 36pt; padding-top: 1pt; flex-shrink: 0; }
+    .clause-title { font-weight: bold; font-size: 10.5pt; }
+    .clause-body { margin-left: 44pt; font-size: 10pt; color: #333; }
+    .clause-body p { margin: 0 0 6pt; }
+    .clause-body p:last-child { margin-bottom: 0; }
+    .clause-body ul, .clause-body ol { margin: 0 0 6pt; padding-left: 18pt; }
+    .clause-body strong { font-weight: bold; }
+    .clause-body em { font-style: italic; }
+    .clause-body h1, .clause-body h2, .clause-body h3 { font-size: 10pt; font-weight: bold; margin: 6pt 0 3pt; }
+
+    .doc-footer {
+      margin-top: 32pt;
+      border-top: 1px solid #ccc;
+      padding-top: 8pt;
+      font-size: 8pt;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page { padding: 0; max-width: 100%; }
+      .spec-section { page-break-inside: avoid; }
+      .clause { page-break-inside: avoid; }
+      @page { margin: 20mm; size: A4; }
+    }
+
+    .print-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #1e40af;
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      z-index: 100;
+    }
+    .print-bar button {
+      background: #fff;
+      color: #1e40af;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .print-bar button:hover { background: #dbeafe; }
+    @media print { .print-bar { display: none; } body { padding-top: 0; } }
+    body { padding-top: 44px; }
+  </style>
+</head>
+<body>
+  <div class="print-bar">
+    <span>${esc(project.name)} — Specification</span>
+    <button onclick="window.print()">Save as PDF / Print</button>
+  </div>
+
+  <div class="page">
+    <header class="doc-header">
+      <h1 class="doc-title">${esc(project.name)}</h1>
+      ${meta ? `<p class="doc-meta">${esc(meta)}</p>` : ''}
+      <p class="doc-date">Specification prepared ${esc(date)}</p>
+    </header>
+
+    ${sectionsHtml}
+
+    <footer class="doc-footer">
+      <span>${esc(project.name)}${project.number ? ` · ${esc(project.number)}` : ''}</span>
+      <span>Generated by Spec Writer · ${esc(date)}</span>
+    </footer>
+  </div>
+</body>
+</html>`;
+}
+
+function esc(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

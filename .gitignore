@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+
+# Turborepo cache
+.turbo/
+
+# Test / coverage
+coverage/
+.vitest/
+
+# Environment — never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Claude Code local settings (machine-specific permissions)
+.claude/
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# TypeScript incremental build cache
+*.tsbuildinfo
