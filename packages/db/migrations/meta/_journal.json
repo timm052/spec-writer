@@ -36,6 +36,13 @@
       "when": 1774600060000,
       "tag": "0004_spec_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774600120000,
+      "tag": "0005_section_cascade_delete",
+      "breakpoints": true
     }
   ]
 }

@@ -34,7 +34,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     await deleteSection(id);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error('DELETE /api/library/sections/[id]', err);
     return NextResponse.json({ error: 'Failed to delete section', code: 'DELETE_ERROR' }, { status: 500 });
   }
 }
