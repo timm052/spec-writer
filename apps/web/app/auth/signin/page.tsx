@@ -2,15 +2,30 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
+const isDev = process.env.NODE_ENV === 'development';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await signIn('nodemailer', { email, redirect: false });
-    setSubmitted(true);
+    setLoading(true);
+    if (isDev) {
+      // Dev mode: sign in instantly, no email sent
+      const result = await signIn('dev', { email, redirect: false });
+      if (result?.ok) {
+        router.push('/');
+      }
+    } else {
+      await signIn('nodemailer', { email, redirect: false });
+      setSubmitted(true);
+    }
+    setLoading(false);
   }
 
   if (submitted) {
@@ -30,7 +45,14 @@ export default function SignInPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow max-w-md w-full">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Sign in to SpecWriter</h1>
-        <p className="text-gray-600 mb-6">Enter your email to receive a magic link.</p>
+        <p className="text-gray-600 mb-6">
+          {isDev ? 'Enter any email to sign in instantly.' : 'Enter your email to receive a magic link.'}
+        </p>
+        {isDev && (
+          <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 font-medium">
+            Dev mode — no email will be sent
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -49,10 +71,11 @@ export default function SignInPage() {
           </div>
           <button
             type="submit"
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-            aria-label="Send sign-in link"
+            disabled={loading}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50"
+            aria-label="Sign in"
           >
-            Send sign-in link
+            {loading ? 'Signing in…' : isDev ? 'Sign in' : 'Send sign-in link'}
           </button>
         </form>
       </div>

@@ -1,6 +1,6 @@
 import { getProjectById, getProjectSpec } from '@spec-writer/db';
 import { resolveClause } from '@spec-writer/core';
-import { practiceVars } from './practice-vars.js';
+import { practiceVars } from './practice-vars';
 import type { ExportProject, ExportSection } from '@spec-writer/export';
 
 export interface BuiltSpec {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSnapshot, getSnapshots } from '@spec-writer/db';
-import { buildSpecSections } from '../../../../../lib/build-spec-sections.js';
+import { buildSpecSections } from '../../../../../lib/build-spec-sections';
 import { buildSpecJson } from '@spec-writer/export';
 
 interface RouteContext {

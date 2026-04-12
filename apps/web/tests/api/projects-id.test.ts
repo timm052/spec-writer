@@ -135,6 +135,13 @@ describe('DELETE /api/projects/[id]', () => {
     expect(response.status).toBe(204);
   });
 
+  it('returns an empty body on successful deletion', async () => {
+    vi.mocked(deleteProject).mockResolvedValue(undefined as never);
+    const response = await DELETE(new Request('http://localhost'), ctx('proj-1'));
+    const text = await response.text();
+    expect(text).toBe('');
+  });
+
   it('calls deleteProject with the correct id', async () => {
     vi.mocked(deleteProject).mockResolvedValue(undefined as never);
     await DELETE(new Request('http://localhost'), ctx('proj-1'));

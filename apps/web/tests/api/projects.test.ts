@@ -97,6 +97,24 @@ describe('POST /api/projects', () => {
     expect(createProject).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Project', number: 'NP-01' }));
   });
 
+  it('passes all optional fields through to createProject', async () => {
+    vi.mocked(createProject).mockResolvedValue(mockProject as never);
+    const req = new Request('http://localhost/api/projects', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Full Project',
+        number: 'FP-001',
+        client: 'ACME Corp',
+        address: '123 Main St',
+      }),
+    });
+    await POST(req);
+    expect(createProject).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Full Project', number: 'FP-001', client: 'ACME Corp', address: '123 Main St' }),
+    );
+  });
+
   it('returns 400 with VALIDATION_ERROR when name is missing', async () => {
     const req = new Request('http://localhost/api/projects', {
       method: 'POST',

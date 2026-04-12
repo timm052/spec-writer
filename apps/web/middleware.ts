@@ -1,7 +1,8 @@
-import { auth } from './auth';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
 import { NextResponse } from 'next/server';
 
-export default auth((req) => {
+export default NextAuth(authConfig).auth((req) => {
   if (!req.auth) {
     return NextResponse.json(
       { error: 'Unauthorized', code: 'UNAUTHORIZED' },

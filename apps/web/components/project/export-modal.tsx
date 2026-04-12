@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog } from '../shared/dialog.js';
+import { Dialog } from '../shared/dialog';
 
 interface ExportModalProps {
   projectId: string;

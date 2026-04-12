@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CreateProjectSchema, type CreateProjectFormValues } from '@spec-writer/core';
 import { Dialog, Button, Input, Label } from '../shared';
+import { toast } from '../../lib/toast';
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -27,7 +28,11 @@ export function CreateProjectModal({ open, onClose, onCreated }: CreateProjectMo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) return;
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { error?: string };
+      toast(body.error ?? 'Failed to create project', 'error');
+      return;
+    }
     const project = await res.json() as { id: string; name: string };
     reset();
     onCreated(project);

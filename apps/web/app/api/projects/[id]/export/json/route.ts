@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { buildSpecJson } from '@spec-writer/export';
-import { buildSpecSections } from '../../../../../../lib/build-spec-sections.js';
+import { buildSpecSections } from '../../../../../../lib/build-spec-sections';
 
 interface RouteContext {
   params: Promise<{ id: string }>;

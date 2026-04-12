@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ExportModal } from './export-modal.js';
+import { ExportModal } from './export-modal';
 
 interface ExportButtonProps {
   projectId: string;
