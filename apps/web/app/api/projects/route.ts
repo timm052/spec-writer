@@ -6,7 +6,8 @@ export async function GET() {
   try {
     const projects = await getProjects();
     return NextResponse.json(projects);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch projects', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
     }
     const project = await createProject(parsed.data);
     return NextResponse.json(project, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to create project', code: 'CREATE_ERROR' }, { status: 500 });
   }
 }

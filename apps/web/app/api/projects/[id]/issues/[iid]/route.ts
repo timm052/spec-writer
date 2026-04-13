@@ -10,7 +10,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     const { iid } = await params;
     await deleteProjectIssue(iid);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to delete issue', code: 'DELETE_ERROR' }, { status: 500 });
   }
 }

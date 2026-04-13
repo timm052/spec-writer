@@ -11,7 +11,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     const issues = await getProjectIssues(id);
     return NextResponse.json(issues);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch issues', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -33,7 +34,8 @@ export async function POST(request: Request, { params }: RouteContext) {
       issuedAt: parsed.data.issuedAt ? new Date(parsed.data.issuedAt) : undefined,
     });
     return NextResponse.json(issue, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to create issue', code: 'CREATE_ERROR' }, { status: 500 });
   }
 }

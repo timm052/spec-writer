@@ -35,9 +35,17 @@ export function ProjectVariablesEditor({ projectId, variables, onSaved }: Projec
     }
   }
 
+  // Token keys must be safe identifier characters for use inside {{token}} templates
+  const TOKEN_KEY_RE = /^[a-zA-Z][a-zA-Z0-9._-]*$/;
+
   function addVariable() {
-    if (!newKey.trim()) return;
-    setValues((prev) => ({ ...prev, [newKey.trim()]: newValue }));
+    const trimmedKey = newKey.trim();
+    if (!trimmedKey) return;
+    if (!TOKEN_KEY_RE.test(trimmedKey)) {
+      toast('Token key must start with a letter and contain only letters, numbers, dots, hyphens, or underscores', 'error');
+      return;
+    }
+    setValues((prev) => ({ ...prev, [trimmedKey]: newValue }));
     setNewKey('');
     setNewValue('');
   }

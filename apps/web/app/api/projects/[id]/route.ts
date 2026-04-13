@@ -14,7 +14,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: 'Project not found', code: 'NOT_FOUND' }, { status: 404 });
     }
     return NextResponse.json(project);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch project', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -32,7 +33,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     const project = await updateProject(id, parsed.data);
     return NextResponse.json(project);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to update project', code: 'UPDATE_ERROR' }, { status: 500 });
   }
 }
@@ -42,7 +44,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     await deleteProject(id);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to delete project', code: 'DELETE_ERROR' }, { status: 500 });
   }
 }

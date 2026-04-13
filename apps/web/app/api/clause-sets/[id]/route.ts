@@ -19,7 +19,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: 'Clause set not found', code: 'NOT_FOUND' }, { status: 404 });
     }
     return NextResponse.json(set);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch clause set', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -37,7 +38,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     const set = await updateClauseSet(id, parsed.data);
     return NextResponse.json(set);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to update clause set', code: 'UPDATE_ERROR' }, { status: 500 });
   }
 }

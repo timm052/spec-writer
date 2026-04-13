@@ -19,7 +19,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     const updated = await updateProjectClause(id, cid, parsed.data);
     return NextResponse.json(updated);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to update clause', code: 'UPDATE_ERROR' }, { status: 500 });
   }
 }
@@ -29,7 +30,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     const { cid } = await params;
     await removeProjectClause(cid);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to remove clause', code: 'DELETE_ERROR' }, { status: 500 });
   }
 }

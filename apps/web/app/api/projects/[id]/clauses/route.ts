@@ -19,7 +19,8 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
     const projectClause = await addClauseToProject(id, parsed.data);
     return NextResponse.json(projectClause, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to add clause', code: 'CREATE_ERROR' }, { status: 500 });
   }
 }

@@ -23,7 +23,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: 'Clause not found', code: 'NOT_FOUND' }, { status: 404 });
     }
     return NextResponse.json(clause);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch clause', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -41,7 +42,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     const clause = await updateClause(id, parsed.data);
     return NextResponse.json(clause);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to update clause', code: 'UPDATE_ERROR' }, { status: 500 });
   }
 }
@@ -51,7 +53,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     await deleteClause(id);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to delete clause', code: 'DELETE_ERROR' }, { status: 500 });
   }
 }

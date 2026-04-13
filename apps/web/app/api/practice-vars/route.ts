@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { practiceVars } from '../../../lib/practice-vars';
 
-export function GET() {
+export async function GET() {
   return NextResponse.json(practiceVars);
 }

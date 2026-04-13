@@ -13,7 +13,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: 'Snapshot not found', code: 'NOT_FOUND' }, { status: 404 });
     }
     return NextResponse.json(snapshot);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch snapshot', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }

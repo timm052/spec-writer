@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import {
   DndContext,
@@ -207,44 +207,55 @@ export function EditorClient({
         const newIndex = section.clauses.findIndex((c) => c.projectClauseId === over.id);
         if (oldIndex === -1 || newIndex === -1) return section;
         const reordered = arrayMove(section.clauses, oldIndex, newIndex);
-        reordered.forEach((clause, i) => {
-          void fetch(`/api/projects/${project.id}/clauses/${clause.projectClauseId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sortOrder: i }),
-          });
+        void fetch(`/api/projects/${project.id}/clauses/reorder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: reordered.map((clause, i) => ({
+              projectClauseId: clause.projectClauseId,
+              sortOrder: i,
+            })),
+          }),
         });
         return { ...section, clauses: reordered.map((c, i) => ({ ...c, sortOrder: i })) };
       }),
     );
   }
 
-  const visibleSections = sections.filter((s) => s.clauses.length > 0);
+  const visibleSections = useMemo(
+    () => sections.filter((s) => s.clauses.length > 0),
+    [sections],
+  );
 
   // Apply search filter
-  const q = searchQuery.trim().toLowerCase();
-  const filteredSections = q
-    ? visibleSections
-        .map((s) => ({
-          ...s,
-          clauses: s.clauses.filter(
-            (c) =>
-              c.title.toLowerCase().includes(q) ||
-              c.code.toLowerCase().includes(q) ||
-              c.body.toLowerCase().includes(q),
-          ),
-        }))
-        .filter((s) => s.clauses.length > 0)
-    : visibleSections;
+  const filteredSections = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return visibleSections;
+    return visibleSections
+      .map((s) => ({
+        ...s,
+        clauses: s.clauses.filter(
+          (c) =>
+            c.title.toLowerCase().includes(q) ||
+            c.code.toLowerCase().includes(q) ||
+            c.body.toLowerCase().includes(q),
+        ),
+      }))
+      .filter((s) => s.clauses.length > 0);
+  }, [visibleSections, searchQuery]);
 
   // Sidebar sections enriched with completeness counts
-  const sidebarSections = visibleSections.map((s) => ({
-    id: s.id,
-    code: s.code,
-    title: s.title,
-    clauseCount: s.clauses.length,
-    reviewedCount: s.clauses.filter((c) => c.status === 'reviewed' || c.status === 'approved').length,
-  }));
+  const sidebarSections = useMemo(
+    () =>
+      visibleSections.map((s) => ({
+        id: s.id,
+        code: s.code,
+        title: s.title,
+        clauseCount: s.clauses.length,
+        reviewedCount: s.clauses.filter((c) => c.status === 'reviewed' || c.status === 'approved').length,
+      })),
+    [visibleSections],
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -305,7 +316,7 @@ export function EditorClient({
             </div>
           </div>
 
-          {filteredSections.length === 0 && q ? (
+          {filteredSections.length === 0 && searchQuery.trim() ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <p className="text-gray-500">No clauses match &ldquo;{searchQuery}&rdquo;</p>
             </div>

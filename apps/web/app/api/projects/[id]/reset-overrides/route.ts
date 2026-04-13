@@ -10,7 +10,8 @@ export async function POST(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     await resetAllOverrides(id);
     return new NextResponse(null, { status: 204 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to reset overrides', code: 'RESET_ERROR' }, { status: 500 });
   }
 }

@@ -83,7 +83,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
       return a.code.localeCompare(b.code);
     });
     return NextResponse.json({ project, sections });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch spec', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }

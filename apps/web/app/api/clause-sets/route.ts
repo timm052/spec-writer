@@ -11,7 +11,8 @@ export async function GET() {
   try {
     const sets = await getClauseSets();
     return NextResponse.json(sets);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch clause sets', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -28,7 +29,8 @@ export async function POST(request: Request) {
     }
     const set = await createClauseSet(parsed.data);
     return NextResponse.json(set, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to create clause set', code: 'CREATE_ERROR' }, { status: 500 });
   }
 }

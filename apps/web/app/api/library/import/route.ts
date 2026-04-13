@@ -1,107 +1,79 @@
 import { NextResponse } from 'next/server';
-import { createSection, createClause, getSections, getDefaultClauseSet } from '@spec-writer/db';
+import { getDefaultClauseSet, createSection, createClause } from '@spec-writer/db';
 import { z } from 'zod';
 
-const ImportBodySchema = z.object({
-  clauseSetId: z.string().uuid().optional(),
-  sections: z.array(z.object({
-    code: z.string().min(1),
-    title: z.string().min(1),
-    clauses: z.array(z.object({
-      code: z.string().min(1),
-      title: z.string().min(1),
-      body: z.string().default(''),
-      tags: z.array(z.string()).optional(),
-      source: z.enum(['natspec', 'practice', 'project']).optional(),
-    })).optional().default([]),
-  })),
-});
-
-// Legacy format: bare array of sections (no clauseSetId wrapper)
-const ImportClauseSchema = z.object({
+const ClauseImportSchema = z.object({
   code: z.string().min(1),
   title: z.string().min(1),
   body: z.string().default(''),
   tags: z.array(z.string()).optional(),
-  source: z.enum(['natspec', 'practice', 'project']).optional(),
 });
 
-const ImportSectionSchema = z.object({
+const SectionImportSchema = z.object({
   code: z.string().min(1),
   title: z.string().min(1),
-  clauses: z.array(ImportClauseSchema).optional().default([]),
+  clauses: z.array(ClauseImportSchema).optional().default([]),
 });
 
-const ImportSchema = z.array(ImportSectionSchema);
+// Preferred shape: { clauseSetId?, sections: [...] }
+const ImportBodySchema = z.object({
+  clauseSetId: z.string().uuid().optional(),
+  sections: z.array(SectionImportSchema),
+});
 
 export async function POST(request: Request) {
   try {
-    const rawBody: unknown = await request.json();
+    const raw: unknown = await request.json();
 
-    // Support both { clauseSetId, sections: [...] } and legacy bare array
-    let clauseSetId: string | undefined;
-    let sectionsData: z.infer<typeof ImportSchema>;
+    // Accept either { clauseSetId?, sections: [...] } or a bare array (legacy)
+    const normalized = Array.isArray(raw) ? { sections: raw } : raw;
 
-    if (Array.isArray(rawBody)) {
-      const parsed = ImportSchema.safeParse(rawBody);
-      if (!parsed.success) {
-        return NextResponse.json(
-          { error: parsed.error.issues[0]?.message ?? 'Invalid import format', code: 'VALIDATION_ERROR' },
-          { status: 400 },
-        );
-      }
-      sectionsData = parsed.data;
-    } else {
-      const parsed = ImportBodySchema.safeParse(rawBody);
-      if (!parsed.success) {
-        return NextResponse.json(
-          { error: parsed.error.issues[0]?.message ?? 'Invalid import format', code: 'VALIDATION_ERROR' },
-          { status: 400 },
-        );
-      }
-      clauseSetId = parsed.data.clauseSetId;
-      sectionsData = parsed.data.sections;
+    const parsed = ImportBodySchema.safeParse(normalized);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'VALIDATION_ERROR' },
+        { status: 400 },
+      );
     }
 
-    // Resolve target clause set
-    if (!clauseSetId) {
+    let resolvedSetId = parsed.data.clauseSetId;
+    if (!resolvedSetId) {
       const defaultSet = await getDefaultClauseSet();
       if (!defaultSet) {
-        return NextResponse.json({ error: 'No clause set found', code: 'NOT_FOUND' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'No clause sets exist — create one first', code: 'NO_CLAUSE_SET' },
+          { status: 400 },
+        );
       }
-      clauseSetId = defaultSet.id;
+      resolvedSetId = defaultSet.id;
     }
-
-    const existingSections = await getSections(clauseSetId);
-    const sectionByCode = new Map(existingSections.map((s) => [s.code.toLowerCase(), s]));
 
     let sectionsCreated = 0;
     let clausesCreated = 0;
 
-    for (const sectionInput of sectionsData) {
-      // Reuse existing section if code matches, otherwise create
-      let section = sectionByCode.get(sectionInput.code.toLowerCase());
-      if (!section) {
-        section = await createSection({ clauseSetId: clauseSetId!, code: sectionInput.code, title: sectionInput.title });
-        sectionByCode.set(sectionInput.code.toLowerCase(), section);
-        sectionsCreated++;
-      }
+    for (const sectionData of parsed.data.sections) {
+      const section = await createSection({
+        clauseSetId: resolvedSetId,
+        code: sectionData.code,
+        title: sectionData.title,
+      });
+      sectionsCreated++;
 
-      for (const clauseInput of sectionInput.clauses) {
+      for (const clauseData of sectionData.clauses) {
         await createClause({
           sectionId: section.id,
-          code: clauseInput.code,
-          title: clauseInput.title,
-          body: clauseInput.body,
-          tags: clauseInput.tags,
-          source: clauseInput.source ?? 'practice',
+          code: clauseData.code,
+          title: clauseData.title,
+          body: clauseData.body,
+          tags: clauseData.tags,
         });
         clausesCreated++;
       }
     }
 
-    return NextResponse.json({ sectionsCreated, clausesCreated }, { status: 201 });
-  } catch {
+    return NextResponse.json({ sectionsCreated, clausesCreated });
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Import failed', code: 'IMPORT_ERROR' }, { status: 500 });
   }
 }

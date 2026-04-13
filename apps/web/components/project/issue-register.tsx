@@ -53,9 +53,15 @@ export function IssueRegister({ projectId, initialIssues }: IssueRegisterProps) 
     }
   }
 
-  async function handleDelete(id: string) {
-    await fetch(`/api/projects/${projectId}/issues/${id}`, { method: 'DELETE' });
-    setIssues((prev) => prev.filter((i) => i.id !== id));
+  async function handleDelete(id: string, revision: string) {
+    if (!confirm(`Delete issue "${revision}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/projects/${projectId}/issues/${id}`, { method: 'DELETE' });
+      if (!res.ok) { toast('Failed to delete issue', 'error'); return; }
+      setIssues((prev) => prev.filter((i) => i.id !== id));
+    } catch {
+      toast('Failed to delete issue', 'error');
+    }
   }
 
   return (
@@ -80,7 +86,7 @@ export function IssueRegister({ projectId, initialIssues }: IssueRegisterProps) 
                 </span>
                 <button
                   type="button"
-                  onClick={() => { void handleDelete(issue.id); }}
+                  onClick={() => { void handleDelete(issue.id, issue.revision); }}
                   aria-label={`Delete issue ${issue.revision}`}
                   className="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none"
                 >

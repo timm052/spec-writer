@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Input, Spinner } from '../shared';
+import { toast } from '../../lib/toast';
 import { SectionTree } from './section-tree';
 import { ClauseCard } from './clause-card';
 import type { Section } from '@spec-writer/db';
@@ -75,17 +76,21 @@ export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdd
     if (activeSetId) params.set('setId', activeSetId);
     try {
       const res = await fetch(`/api/library/clauses?${params}`);
-      if (res.ok) {
-        const data = await res.json() as LibraryClause[];
-        setClauses(data);
+      if (!res.ok) {
+        toast('Failed to load clauses', 'error');
+        return;
       }
+      const data = await res.json() as LibraryClause[];
+      setClauses(data);
+    } catch {
+      toast('Failed to load clauses', 'error');
     } finally {
       setLoading(false);
     }
   }, [query, selectedSection, selectedTags, activeSetId]);
 
   useEffect(() => {
-    const timer = setTimeout(() => { void fetchClauses(); }, 200);
+    const timer = setTimeout(() => { void fetchClauses(); }, 300);
     return () => clearTimeout(timer);
   }, [fetchClauses]);
 

@@ -10,7 +10,8 @@ export async function POST(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     const newProject = await duplicateProject(id);
     return NextResponse.json(newProject, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to duplicate project', code: 'DUPLICATE_ERROR' }, { status: 500 });
   }
 }

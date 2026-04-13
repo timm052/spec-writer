@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Dialog } from '../shared/dialog';
+import { toast } from '../../lib/toast';
 
 interface ExportModalProps {
   projectId: string;
@@ -67,7 +68,7 @@ export function ExportModal({ projectId, projectName, open, onClose }: ExportMod
       const res = await fetch(`/api/projects/${projectId}/export/${format}`);
       if (!res.ok) {
         const err = (await res.json()) as { error?: string };
-        alert(err.error ?? 'Export failed');
+        toast(err.error ?? 'Export failed', 'error');
         return;
       }
 

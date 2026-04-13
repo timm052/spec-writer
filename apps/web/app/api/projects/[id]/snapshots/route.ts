@@ -17,7 +17,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
     const { id } = await params;
     const snapshots = await getSnapshots(id);
     return NextResponse.json(snapshots);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to fetch snapshots', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
@@ -44,7 +45,8 @@ export async function POST(req: Request, { params }: RouteContext) {
     const snapshot = await createSnapshot(id, snapshotJson as unknown as Record<string, unknown>, parsed.data.label);
 
     return NextResponse.json(snapshot, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to create snapshot', code: 'SNAPSHOT_ERROR' }, { status: 500 });
   }
 }

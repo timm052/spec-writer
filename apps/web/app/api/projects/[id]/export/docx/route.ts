@@ -28,7 +28,8 @@ export async function GET(_req: Request, { params }: RouteContext) {
         'Cache-Control': 'no-store',
       },
     });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'DOCX export failed', code: 'EXPORT_ERROR' }, { status: 500 });
   }
 }

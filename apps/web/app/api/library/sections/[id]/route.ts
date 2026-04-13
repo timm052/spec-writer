@@ -24,7 +24,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     const section = await updateSection(id, parsed.data);
     return NextResponse.json(section);
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to update section', code: 'UPDATE_ERROR' }, { status: 500 });
   }
 }

@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server';
-import { searchClauses, createClause } from '@spec-writer/db';
+import { searchClauses, createClause, getSections, getDefaultClauseSet } from '@spec-writer/db';
 import { z } from 'zod';
-
-const SearchClausesSchema = z.object({
-  q: z.string().optional(),
-  section: z.string().optional(),
-  tags: z.string().optional(),
-  setId: z.string().uuid().optional(),
-});
 
 const CreateClauseSchema = z.object({
   sectionId: z.string().uuid(),
@@ -21,27 +14,15 @@ const CreateClauseSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const parsed = SearchClausesSchema.safeParse({
-      q: searchParams.get('q') ?? undefined,
-      section: searchParams.get('section') ?? undefined,
-      tags: searchParams.get('tags') ?? undefined,
-      setId: searchParams.get('setId') ?? undefined,
-    });
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'VALIDATION_ERROR' },
-        { status: 400 },
-      );
-    }
-    const clauses = await searchClauses({
-      q: parsed.data.q,
-      section: parsed.data.section,
-      tags: parsed.data.tags,
-      clauseSetId: parsed.data.setId,
-    });
-    return NextResponse.json(clauses);
-  } catch {
-    return NextResponse.json({ error: 'Failed to search clauses', code: 'FETCH_ERROR' }, { status: 500 });
+    const q = searchParams.get('q') ?? undefined;
+    const section = searchParams.get('section') ?? undefined;
+    const tags = searchParams.get('tags') ?? undefined;
+    const setId = searchParams.get('setId') ?? undefined;
+    const results = await searchClauses({ q, section, tags, clauseSetId: setId });
+    return NextResponse.json(results);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Failed to fetch clauses', code: 'FETCH_ERROR' }, { status: 500 });
   }
 }
 
@@ -57,7 +38,8 @@ export async function POST(request: Request) {
     }
     const clause = await createClause(parsed.data);
     return NextResponse.json(clause, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ error: 'Failed to create clause', code: 'CREATE_ERROR' }, { status: 500 });
   }
 }
