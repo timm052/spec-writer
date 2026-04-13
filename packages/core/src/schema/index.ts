@@ -15,6 +15,7 @@ export type ProjectStatus = z.infer<typeof ProjectStatusSchema>;
 
 export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
   status: ProjectStatusSchema.optional(),
+  clauseSetId: z.string().uuid().nullable().optional(),
 });
 
 export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;

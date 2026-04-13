@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     }
 
     const snapshotJson = buildSpecJson(spec.project, spec.sections);
-    const snapshot = await createSnapshot(id, snapshotJson as Record<string, unknown>, parsed.data.label);
+    const snapshot = await createSnapshot(id, snapshotJson as unknown as Record<string, unknown>, parsed.data.label);
 
     return NextResponse.json(snapshot, { status: 201 });
   } catch {

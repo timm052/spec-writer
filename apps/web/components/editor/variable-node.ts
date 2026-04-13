@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Node, mergeAttributes, type CommandProps } from '@tiptap/core';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -20,7 +20,7 @@ export const VariableNode = Node.create({
     return {
       key: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-variable'),
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-variable'),
         renderHTML: (attributes: Record<string, unknown>) => ({
           'data-variable': attributes['key'],
         }),
@@ -48,7 +48,7 @@ export const VariableNode = Node.create({
     return {
       insertVariable:
         (key: string) =>
-        ({ chain }: { chain: () => { insertContent: (content: unknown) => { run: () => boolean } } }) => {
+        ({ chain }: CommandProps) => {
           return chain()
             .insertContent({ type: this.name, attrs: { key } })
             .run();

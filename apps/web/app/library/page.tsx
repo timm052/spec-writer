@@ -1,21 +1,31 @@
 import Link from 'next/link';
-import { getSections, getProjectById, getAllTags } from '@spec-writer/db';
+import { getSections, getProjectById, getAllTags, getClauseSets, getDefaultClauseSet } from '@spec-writer/db';
 import { LibraryBrowser } from '../../components/library/library-browser';
+import { ClauseSetSelector } from '../../components/library/clause-set-selector';
 
 export const dynamic = 'force-dynamic';
 
 interface LibraryPageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<{ projectId?: string; setId?: string }>;
 }
 
 export default async function LibraryPage({ searchParams }: LibraryPageProps) {
-  const { projectId } = await searchParams;
+  const { projectId, setId } = await searchParams;
 
-  const [sections, project, availableTags] = await Promise.all([
-    getSections(),
+  const [clauseSets, project, availableTags] = await Promise.all([
+    getClauseSets(),
     projectId ? getProjectById(projectId) : Promise.resolve(null),
     getAllTags(),
   ]);
+
+  // Resolve active set: prefer URL param, else first set, else create default
+  let activeSetId = setId;
+  if (!activeSetId || !clauseSets.find((s) => s.id === activeSetId)) {
+    const defaultSet = clauseSets[0] ?? (await getDefaultClauseSet());
+    activeSetId = defaultSet?.id ?? '';
+  }
+
+  const sections = activeSetId ? await getSections(activeSetId) : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -38,10 +48,20 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
           Manage library →
         </Link>
       </div>
+      {clauseSets.length > 0 && (
+        <div className="mb-8">
+          <ClauseSetSelector
+            clauseSets={clauseSets}
+            activeSetId={activeSetId}
+            projectId={projectId}
+          />
+        </div>
+      )}
       <LibraryBrowser
         sections={sections}
         projectId={projectId}
         availableTags={availableTags}
+        activeSetId={activeSetId}
       />
     </div>
   );

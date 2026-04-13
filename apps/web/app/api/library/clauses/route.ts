@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { searchClauses, createClause } from '@spec-writer/db';
-import { SearchClausesSchema } from '@spec-writer/core';
 import { z } from 'zod';
+
+const SearchClausesSchema = z.object({
+  q: z.string().optional(),
+  section: z.string().optional(),
+  tags: z.string().optional(),
+  setId: z.string().uuid().optional(),
+});
 
 const CreateClauseSchema = z.object({
   sectionId: z.string().uuid(),
@@ -15,19 +21,24 @@ const CreateClauseSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const input = {
+    const parsed = SearchClausesSchema.safeParse({
       q: searchParams.get('q') ?? undefined,
       section: searchParams.get('section') ?? undefined,
       tags: searchParams.get('tags') ?? undefined,
-    };
-    const parsed = SearchClausesSchema.safeParse(input);
+      setId: searchParams.get('setId') ?? undefined,
+    });
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'VALIDATION_ERROR' },
         { status: 400 },
       );
     }
-    const clauses = await searchClauses(parsed.data);
+    const clauses = await searchClauses({
+      q: parsed.data.q,
+      section: parsed.data.section,
+      tags: parsed.data.tags,
+      clauseSetId: parsed.data.setId,
+    });
     return NextResponse.json(clauses);
   } catch {
     return NextResponse.json({ error: 'Failed to search clauses', code: 'FETCH_ERROR' }, { status: 500 });

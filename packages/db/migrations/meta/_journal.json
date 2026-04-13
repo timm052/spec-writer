@@ -43,6 +43,13 @@
       "when": 1774600120000,
       "tag": "0005_section_cascade_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774600180000,
+      "tag": "0006_clause_sets",
+      "breakpoints": true
     }
   ]
 }

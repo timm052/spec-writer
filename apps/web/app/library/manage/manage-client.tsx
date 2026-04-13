@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button, Input, Label, Textarea } from '../../../components/shared';
+import { ClauseSetSelector } from '../../../components/library/clause-set-selector';
 import { toast } from '../../../lib/toast';
-import type { Section } from '@spec-writer/db';
+import type { Section, ClauseSet } from '@spec-writer/db';
 
 type ClauseSource = 'natspec' | 'practice' | 'project';
 
@@ -46,7 +47,13 @@ const SOURCE_LABELS: Record<ClauseSource, string> = {
   project: 'Project',
 };
 
-export function LibraryManageClient({ initialSections }: { initialSections: Section[] }) {
+interface LibraryManageClientProps {
+  initialSections: Section[];
+  clauseSets: ClauseSet[];
+  activeSetId: string;
+}
+
+export function LibraryManageClient({ initialSections, clauseSets, activeSetId }: LibraryManageClientProps) {
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedSection, setSelectedSection] = useState<string | undefined>(initialSections[0]?.id);
   const [clauses, setClauses] = useState<LibraryClause[]>([]);
@@ -64,6 +71,13 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importing, setImporting] = useState(false);
+
+  // Sync sections state when the server-rendered prop changes (clause set switch)
+  useEffect(() => {
+    setSections(initialSections);
+    setSelectedSection(initialSections[0]?.id);
+    setClauses([]);
+  }, [initialSections]);
 
   const fetchClauses = useCallback(async () => {
     if (!selectedSection) return;
@@ -142,7 +156,7 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
     const res = await fetch('/api/library/sections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: sectionCode.trim(), title: sectionTitle.trim() }),
+      body: JSON.stringify({ clauseSetId: activeSetId, code: sectionCode.trim(), title: sectionTitle.trim() }),
     });
     if (!res.ok) { toast('Failed to create section', 'error'); return; }
     const section = await res.json() as Section;
@@ -176,13 +190,13 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
       const res = await fetch('/api/library/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ clauseSetId: activeSetId, sections: data }),
       });
       if (!res.ok) { toast('Import failed', 'error'); return; }
       const result = await res.json() as { sectionsCreated: number; clausesCreated: number };
       toast(`Imported ${result.clausesCreated} clauses across ${result.sectionsCreated} new sections`);
-      // Refresh sections list
-      const sectRes = await fetch('/api/library/sections');
+      // Refresh sections list for this set
+      const sectRes = await fetch(`/api/library/sections?setId=${activeSetId}`);
       if (sectRes.ok) setSections(await sectRes.json() as Section[]);
       setImportJson('');
       setShowImport(false);
@@ -197,7 +211,7 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <Link href="/library" className="text-xs text-gray-400 hover:text-gray-600 mb-1 inline-block">← Library</Link>
           <h1 className="text-2xl font-bold text-gray-900">Manage Library</h1>
@@ -212,6 +226,16 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
           </Button>
         </div>
       </div>
+
+      {clauseSets.length > 0 && (
+        <div className="mb-8">
+          <ClauseSetSelector
+            clauseSets={clauseSets}
+            activeSetId={activeSetId}
+            basePath="/library/manage"
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Section list */}
@@ -284,6 +308,17 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
 
         {/* Clause list */}
         <div className="lg:col-span-3">
+          {/* Empty set — prompt to add a section first */}
+          {sections.length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
+              <p className="text-sm font-medium text-gray-700 mb-1">This clause set has no sections yet.</p>
+              <p className="text-xs text-gray-400 mb-4">Add a section using the panel on the left, then create clauses within it.</p>
+              <Button size="sm" variant="secondary" onClick={() => setShowSectionForm(true)}>
+                + Add first section
+              </Button>
+            </div>
+          ) : !selectedSection ? null : (
+          <>
           {/* Toolbar */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             {currentSection && (
@@ -299,7 +334,7 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
                   key={s}
                   type="button"
                   onClick={() => setSourceFilter(s)}
-                  aria-pressed={sourceFilter === s}
+                  aria-label={s === '' ? 'All sources' : SOURCE_LABELS[s]}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                     sourceFilter === s
                       ? 'bg-blue-600 text-white border-blue-600'
@@ -366,6 +401,8 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
               ))}
             </div>
           )}
+          </>
+          )}
         </div>
       </div>
 
@@ -383,6 +420,7 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
                   <Label htmlFor="clause-section" className="text-xs text-gray-600">Section</Label>
                   <select
                     id="clause-section"
+                    title="Section"
                     value={form.sectionId}
                     onChange={(e) => setForm((f) => f && ({ ...f, sectionId: e.target.value }))}
                     className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -397,6 +435,7 @@ export function LibraryManageClient({ initialSections }: { initialSections: Sect
                   <Label htmlFor="clause-source" className="text-xs text-gray-600">Source</Label>
                   <select
                     id="clause-source"
+                    title="Source"
                     value={form.source}
                     onChange={(e) => setForm((f) => f && ({ ...f, source: e.target.value as ClauseSource }))}
                     className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

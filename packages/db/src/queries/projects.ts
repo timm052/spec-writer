@@ -16,6 +16,7 @@ interface UpdateProjectInput {
   address?: string;
   variables?: Record<string, string>;
   status?: 'draft' | 'in-review' | 'issued';
+  clauseSetId?: string | null;
 }
 
 export async function getProjects() {
@@ -32,6 +33,7 @@ export async function getProjectsWithClauseCounts() {
       address: projects.address,
       variables: projects.variables,
       status: projects.status,
+      clauseSetId: projects.clauseSetId,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
       clauseCount: sql<number>`cast(count(case when ${projectClauses.included} = true then 1 end) as int)`,
@@ -109,6 +111,7 @@ export async function updateProject(id: string, input: UpdateProjectInput) {
       ...(input.address !== undefined && { address: input.address }),
       ...(input.variables !== undefined && { variables: input.variables }),
       ...(input.status !== undefined && { status: input.status }),
+      ...(input.clauseSetId !== undefined && { clauseSetId: input.clauseSetId }),
     })
     .where(eq(projects.id, id))
     .returning();

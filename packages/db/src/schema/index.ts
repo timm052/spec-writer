@@ -11,9 +11,23 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { AdapterAccountType } from '@auth/core/adapters';
 
+// Clause sets — named libraries of sections + clauses
+export const clauseSets = pgTable('clause_sets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+});
+
 // Sections table
 export const sections = pgTable('sections', {
   id: uuid('id').primaryKey().defaultRandom(),
+  clauseSetId: uuid('clause_set_id')
+    .notNull()
+    .references(() => clauseSets.id, { onDelete: 'cascade' }),
   code: text('code').notNull(),
   title: text('title').notNull(),
   parentId: uuid('parent_id').references((): AnyPgColumn => sections.id),
@@ -45,6 +59,7 @@ export const clauses = pgTable('clauses', {
 // Projects table
 export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
+  clauseSetId: uuid('clause_set_id').references(() => clauseSets.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   number: text('number'),
   client: text('client'),
@@ -182,6 +197,7 @@ export const verificationTokens = pgTable(
   (table) => [primaryKey({ columns: [table.identifier, table.token] })],
 );
 
+export type ClauseSet = typeof clauseSets.$inferSelect;
 export type Section = typeof sections.$inferSelect;
 export type Clause = typeof clauses.$inferSelect;
 export type Project = typeof projects.$inferSelect;

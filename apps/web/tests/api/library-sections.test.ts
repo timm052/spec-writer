@@ -1,8 +1,13 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+const VALID_SET_ID = '550e8400-e29b-41d4-a716-446655440000';
+const VALID_SET_ID_2 = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+const mockDefaultSet = { id: VALID_SET_ID_2, name: 'Default', description: null, createdAt: new Date(), updatedAt: new Date() };
+
 vi.mock('@spec-writer/db', () => ({
   getSections: vi.fn(),
   createSection: vi.fn(),
+  getDefaultClauseSet: vi.fn(),
 }));
 
 vi.mock('next/server', () => {
@@ -19,7 +24,7 @@ vi.mock('next/server', () => {
 });
 
 import { GET, POST } from '../../app/api/library/sections/route.js';
-import { getSections, createSection } from '@spec-writer/db';
+import { getSections, createSection, getDefaultClauseSet } from '@spec-writer/db';
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -49,12 +54,17 @@ const mockSection2 = {
 // GET /api/library/sections
 // ---------------------------------------------------------------------------
 
+function getRequest(setId?: string) {
+  const url = setId ? `http://localhost?setId=${setId}` : 'http://localhost';
+  return new Request(url);
+}
+
 describe('GET /api/library/sections', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('returns 200 with list of sections', async () => {
     vi.mocked(getSections).mockResolvedValue([mockSection] as never);
-    const response = await GET();
+    const response = await GET(getRequest());
     expect(response.status).toBe(200);
     const data = await response.json() as typeof mockSection[];
     expect(data).toHaveLength(1);
@@ -63,7 +73,7 @@ describe('GET /api/library/sections', () => {
 
   it('returns empty array when no sections exist', async () => {
     vi.mocked(getSections).mockResolvedValue([]);
-    const response = await GET();
+    const response = await GET(getRequest());
     expect(response.status).toBe(200);
     const data = await response.json() as unknown[];
     expect(data).toHaveLength(0);
@@ -71,7 +81,7 @@ describe('GET /api/library/sections', () => {
 
   it('returns multiple sections', async () => {
     vi.mocked(getSections).mockResolvedValue([mockSection, mockSection2] as never);
-    const response = await GET();
+    const response = await GET(getRequest());
     expect(response.status).toBe(200);
     const data = await response.json() as typeof mockSection[];
     expect(data).toHaveLength(2);
@@ -81,16 +91,22 @@ describe('GET /api/library/sections', () => {
 
   it('returns 500 with FETCH_ERROR when database throws', async () => {
     vi.mocked(getSections).mockRejectedValue(new Error('DB error'));
-    const response = await GET();
+    const response = await GET(getRequest());
     expect(response.status).toBe(500);
     const data = await response.json() as { code: string };
     expect(data.code).toBe('FETCH_ERROR');
   });
 
-  it('calls getSections with no arguments', async () => {
+  it('calls getSections with no arguments when no setId param', async () => {
     vi.mocked(getSections).mockResolvedValue([]);
-    await GET();
-    expect(getSections).toHaveBeenCalledWith();
+    await GET(getRequest());
+    expect(getSections).toHaveBeenCalledWith(undefined);
+  });
+
+  it('calls getSections with setId when provided', async () => {
+    vi.mocked(getSections).mockResolvedValue([]);
+    await GET(getRequest('set-abc'));
+    expect(getSections).toHaveBeenCalledWith('set-abc');
   });
 });
 
@@ -99,14 +115,17 @@ describe('GET /api/library/sections', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/library/sections', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getDefaultClauseSet).mockResolvedValue(mockDefaultSet as never);
+  });
 
   it('returns 201 with created section', async () => {
     vi.mocked(createSection).mockResolvedValue(mockSection as never);
     const req = new Request('http://localhost', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code: '01', title: 'Preliminary' }),
+      body: JSON.stringify({ clauseSetId: VALID_SET_ID, code: '01', title: 'Preliminary' }),
     });
     const response = await POST(req);
     expect(response.status).toBe(201);
@@ -120,10 +139,22 @@ describe('POST /api/library/sections', () => {
     const req = new Request('http://localhost', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code: '03', title: 'Concrete', sortOrder: 3 }),
+      body: JSON.stringify({ clauseSetId: VALID_SET_ID, code: '03', title: 'Concrete', sortOrder: 3 }),
     });
     await POST(req);
     expect(createSection).toHaveBeenCalledWith(expect.objectContaining({ code: '03', title: 'Concrete', sortOrder: 3 }));
+  });
+
+  it('falls back to default set when clauseSetId is omitted', async () => {
+    vi.mocked(createSection).mockResolvedValue(mockSection as never);
+    const req = new Request('http://localhost', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: '01', title: 'Preliminary' }),
+    });
+    const response = await POST(req);
+    expect(response.status).toBe(201);
+    expect(getDefaultClauseSet).toHaveBeenCalled();
   });
 
   it('returns 400 with VALIDATION_ERROR when code is missing', async () => {
@@ -177,7 +208,7 @@ describe('POST /api/library/sections', () => {
     const req = new Request('http://localhost', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code: '01', title: 'Preliminary' }),
+      body: JSON.stringify({ clauseSetId: VALID_SET_ID, code: '01', title: 'Preliminary' }),
     });
     const response = await POST(req);
     expect(response.status).toBe(201);
@@ -198,7 +229,7 @@ describe('POST /api/library/sections', () => {
     const req = new Request('http://localhost', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code: '01', title: 'Preliminary' }),
+      body: JSON.stringify({ clauseSetId: VALID_SET_ID, code: '01', title: 'Preliminary' }),
     });
     const response = await POST(req);
     expect(response.status).toBe(500);

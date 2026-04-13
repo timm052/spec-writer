@@ -21,9 +21,10 @@ interface LibraryBrowserProps {
   projectId?: string;
   availableTags?: string[];
   onClauseAdded?: () => void;
+  activeSetId?: string;
 }
 
-export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdded }: LibraryBrowserProps) {
+export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdded, activeSetId }: LibraryBrowserProps) {
   const [query, setQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState<string | undefined>();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -32,6 +33,11 @@ export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdd
   const [togglingClauseId, setTogglingClauseId] = useState<string | null>(null);
   // Maps clauseId → projectClauseId for every included clause
   const [addedMap, setAddedMap] = useState<Map<string, string>>(new Map());
+
+  // Reset section filter when the active set changes
+  useEffect(() => {
+    setSelectedSection(undefined);
+  }, [activeSetId]);
 
   // Fetch the project's current clause state whenever projectId changes
   useEffect(() => {
@@ -66,6 +72,7 @@ export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdd
     if (query) params.set('q', query);
     if (selectedSection) params.set('section', selectedSection);
     if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (activeSetId) params.set('setId', activeSetId);
     try {
       const res = await fetch(`/api/library/clauses?${params}`);
       if (res.ok) {
@@ -75,7 +82,7 @@ export function LibraryBrowser({ sections, projectId, availableTags, onClauseAdd
     } finally {
       setLoading(false);
     }
-  }, [query, selectedSection, selectedTags]);
+  }, [query, selectedSection, selectedTags, activeSetId]);
 
   useEffect(() => {
     const timer = setTimeout(() => { void fetchClauses(); }, 200);

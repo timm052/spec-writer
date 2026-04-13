@@ -16,7 +16,7 @@ const handlers = new Set<ToastHandler>();
 export const toastEmitter = {
   on(handler: ToastHandler) {
     handlers.add(handler);
-    return () => handlers.delete(handler);
+    return () => { handlers.delete(handler); };
   },
   emit(toast: ToastItem) {
     handlers.forEach((h) => h(toast));

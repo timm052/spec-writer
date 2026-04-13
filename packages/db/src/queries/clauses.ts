@@ -3,12 +3,16 @@ import { db, sections, clauses } from '../index.js';
 
 // ─── Sections ─────────────────────────────────────────────────────────────────
 
-export async function createSection(input: { code: string; title: string; sortOrder?: number }) {
-  const allSections = await db.select({ sortOrder: sections.sortOrder }).from(sections).orderBy(asc(sections.sortOrder));
+export async function createSection(input: { clauseSetId: string; code: string; title: string; sortOrder?: number }) {
+  const allSections = await db
+    .select({ sortOrder: sections.sortOrder })
+    .from(sections)
+    .where(eq(sections.clauseSetId, input.clauseSetId))
+    .orderBy(asc(sections.sortOrder));
   const maxSort = allSections[allSections.length - 1]?.sortOrder ?? -1;
   const [row] = await db
     .insert(sections)
-    .values({ code: input.code, title: input.title, sortOrder: input.sortOrder ?? maxSort + 1 })
+    .values({ clauseSetId: input.clauseSetId, code: input.code, title: input.title, sortOrder: input.sortOrder ?? maxSort + 1 })
     .returning();
   if (!row) throw new Error('Failed to create section');
   return row;
@@ -92,9 +96,13 @@ interface SearchClausesInput {
   q?: string;
   section?: string;
   tags?: string;
+  clauseSetId?: string;
 }
 
-export async function getSections() {
+export async function getSections(clauseSetId?: string) {
+  if (clauseSetId) {
+    return db.select().from(sections).where(eq(sections.clauseSetId, clauseSetId)).orderBy(sections.sortOrder);
+  }
   return db.select().from(sections).orderBy(sections.sortOrder);
 }
 
@@ -112,6 +120,10 @@ export async function getClauseById(id: string) {
 
 export async function searchClauses(input: SearchClausesInput) {
   const conditions = [];
+
+  if (input.clauseSetId) {
+    conditions.push(eq(sections.clauseSetId, input.clauseSetId));
+  }
 
   if (input.section) {
     conditions.push(eq(clauses.sectionId, input.section));

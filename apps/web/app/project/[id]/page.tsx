@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getProjectById, getProjectSpec, getProjectIssues } from '@spec-writer/db';
+import { getProjectById, getProjectSpec, getProjectIssues, getClauseSets } from '@spec-writer/db';
 import { ProjectVariablesEditor } from '../../../components/project/project-variables-editor';
 import { ProjectActions } from '../../../components/project/project-actions';
 import { ExportButton } from '../../../components/project/export-button';
 import { ProjectStatusSelect } from '../../../components/project/project-status-select';
+import { ProjectClauseSetSelect } from '../../../components/project/project-clause-set-select';
 import { IssueRegister } from '../../../components/project/issue-register';
 import { Badge } from '../../../components/shared';
 
@@ -19,7 +20,11 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const project = await getProjectById(id);
   if (!project) notFound();
 
-  const [specRows, issues] = await Promise.all([getProjectSpec(id), getProjectIssues(id)]);
+  const [specRows, issues, clauseSets] = await Promise.all([
+    getProjectSpec(id),
+    getProjectIssues(id),
+    getClauseSets(),
+  ]);
   const includedRows = specRows.filter((r) => r.included);
 
   const sectionMap = new Map<string, {
@@ -67,6 +72,11 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            <ProjectClauseSetSelect
+              projectId={project.id}
+              clauseSets={clauseSets}
+              activeSetId={project.clauseSetId ?? null}
+            />
             <ProjectStatusSelect projectId={project.id} status={(project.status ?? 'draft') as 'draft' | 'in-review' | 'issued'} />
             <ProjectActions project={{ id: project.id, name: project.name, number: project.number, client: project.client, address: project.address }} />
             <ExportButton projectId={project.id} projectName={project.name} />
@@ -119,7 +129,10 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
               <p className="text-xs text-gray-400 mt-0.5">{includedRows.length} clause{includedRows.length === 1 ? '' : 's'} included</p>
             </div>
             <div className="flex items-center gap-4">
-              <Link href={`/library?projectId=${project.id}`} className="text-xs text-gray-500 hover:text-blue-600">
+              <Link
+                href={`/library?projectId=${project.id}${project.clauseSetId ? `&setId=${project.clauseSetId}` : ''}`}
+                className="text-xs text-gray-500 hover:text-blue-600"
+              >
                 + Add clauses
               </Link>
               {includedRows.length > 0 && (
@@ -133,7 +146,10 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             {sections.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <p className="text-sm text-gray-500 mb-3">No clauses added yet.</p>
-                <Link href={`/library?projectId=${project.id}`} className="text-sm text-blue-600 hover:underline">
+                <Link
+                  href={`/library?projectId=${project.id}${project.clauseSetId ? `&setId=${project.clauseSetId}` : ''}`}
+                  className="text-sm text-blue-600 hover:underline"
+                >
                   Browse the library to add clauses →
                 </Link>
               </div>
